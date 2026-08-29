@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sketchp Shen Pad</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 頂部標題與工具列 (純圖示 Icon-Only 設計) -->
+    <header class="app-header">
+      <div class="header-brand">
+        <i class="fa-solid fa-paintbrush brand-icon"></i>
+        <h1 class="app-title">Sketchp Shen Pad</h1>
+      </div>
+      
+      <div class="header-actions">
+        <!-- 畫布尺寸設定按鈕 -->
+        <button id="btn-canvas-size" class="icon-tool-btn" title="設定畫布尺寸與解析度 (目前預設 1200×900)">
+          <i class="fa-solid fa-expand"></i>
+        </button>
+
+        <!-- 旋轉與翻轉工具組 -->
+        <button id="btn-flip-h" class="icon-tool-btn" title="水平翻轉畫布 (左右鏡像)">
+          <i class="fa-solid fa-arrows-left-right"></i>
+        </button>
+        <button id="btn-flip-v" class="icon-tool-btn" title="垂直翻轉畫布 (上下顛倒)">
+          <i class="fa-solid fa-arrows-up-down"></i>
+        </button>
+        <button id="btn-rotate-90" class="icon-tool-btn" title="順時針旋轉 90 度">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <!-- 匯入簽名/印章 (PNG, SVG) -->
+        <button id="btn-import-stamp" class="icon-tool-btn stamp-import" title="匯入個人簽名、落款印章或浮水印 (支援 PNG、SVG、JPG，可自由縮放拖曳)">
+          <i class="fa-solid fa-stamp"></i>
+        </button>
+        <input type="file" id="stamp-file-input" accept="image/png,image/svg+xml,image/jpeg,image/webp" style="display: none;">
+
+        <div class="header-divider"></div>
+
+        <!-- 歷史復原與清空 -->
+        <button id="btn-undo" class="icon-tool-btn" title="復原上一筆 (Ctrl+Z)">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        <button id="btn-redo" class="icon-tool-btn" title="重做下一筆 (Ctrl+Y)">
+          <i class="fa-solid fa-arrow-rotate-right"></i>
+        </button>
+        <button id="btn-clear" class="icon-tool-btn danger" title="清空當前畫紙筆跡">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <!-- 單張與批次匯出選項 -->
+        <button id="btn-save-transparent-png" class="icon-tool-btn transparent-export" title="匯出透明去背 PNG (不含底紙顏色)">
+          <i class="fa-solid fa-file-export"></i>
+        </button>
+        <button id="btn-save-png" class="icon-tool-btn primary" title="匯出完整含底紙質感 PNG">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+        </button>
+        <button id="btn-save-jpg" class="icon-tool-btn secondary" title="匯出標準 JPG 高畫質圖檔">
+          <i class="fa-solid fa-file-image"></i>
+        </button>
+        <button id="btn-batch-export" class="icon-tool-btn batch-export" title="批次打包匯出全部或自選畫紙">
+          <i class="fa-solid fa-images"></i>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <!-- 全螢幕切換 -->
+        <button id="btn-fullscreen" class="icon-tool-btn" title="切換全螢幕模式">
+          <i class="fa-solid fa-maximize"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- 多畫紙分頁管理器 -->
+    <div class="sheets-manager-bar" id="sheets-bar">
+      <div class="sheets-label-prefix">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>畫紙分頁：</span>
+      </div>
+      <div class="sheets-tab-list" id="sheets-tab-container">
+        <!-- 動態生成的畫紙分頁標籤 -->
+      </div>
+      <div class="sheets-actions">
+        <button id="btn-add-sheet" class="sheet-action-btn add" title="新增一張新畫紙">
+          <i class="fa-solid fa-plus"></i>
+          <span>新增畫紙</span>
+        </button>
+        <button id="btn-duplicate-sheet" class="sheet-action-btn" title="複製當前畫紙">
+          <i class="fa-solid fa-copy"></i>
+        </button>
+        <button id="btn-delete-sheet" class="sheet-action-btn delete" title="刪除當前畫紙">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 主工作畫布區域 -->
+    <main class="canvas-workspace" id="canvas-workspace">
+      <!-- 浮動繪圖工作室 -->
+      <aside class="toolbox-panel" id="toolbox">
+        <div class="toolbox-header" id="toolbox-drag-handle" title="按住平滑拖曳移動工作室位置">
+          <div class="toolbox-title-wrapper">
+            <i class="fa-solid fa-grip-vertical drag-indicator-icon"></i>
+            <span class="toolbox-title"><i class="fa-solid fa-palette"></i> 藝術工作室</span>
+          </div>
+          <div class="toolbox-header-buttons">
+            <button id="toolbox-toggle" class="toolbox-toggle-btn" title="收合/展開工具箱">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbox-content">
+          <!-- 藝術筆刷模式 (包含油漆桶) -->
+          <div class="tool-group">
+            <label class="group-label"><i class="fa-solid fa-pen-nib"></i> 藝術筆刷模式</label>
+            <div class="brush-selector-grid">
+              <button class="brush-btn active" data-brush="sketch" title="素描鉛筆 (Graphite Pencil: 清晰石墨排線與顆粒)">
+                <i class="fa-solid fa-pencil"></i>
+                <span>素描鉛筆</span>
+              </button>
+              <button class="brush-btn" data-brush="watercolor" title="水彩暈染 (Watercolor Bleed: 連續水彩與濕邊水痕)">
+                <i class="fa-solid fa-droplet"></i>
+                <span>水彩暈染</span>
+              </button>
+              <button class="brush-btn" data-brush="calligraphy" title="毛筆提按 (Calligraphy Dynamics: 速度快細慢粗、尖銳鋒芒)">
+                <i class="fa-solid fa-paintbrush"></i>
+                <span>毛筆提按</span>
+              </button>
+              <button class="brush-btn" data-brush="blender_pure" title="純淨清水筆 (Pure Blender: 濃處化淡、清澈透亮水痕)">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>純淨清水</span>
+              </button>
+              <button class="brush-btn" data-brush="blender_stain" title="水漬暈染筆 (Stain Bleed: 朦朧水墨、藝術水漬沉澱)">
+                <i class="fa-solid fa-water"></i>
+                <span>水漬暈染</span>
+              </button>
+              <button class="brush-btn" data-brush="charcoal" title="炭筆顆粒 (Vine Charcoal: 粗細可調、濃黑粉彩)">
+                <i class="fa-solid fa-brush"></i>
+                <span>炭筆顆粒</span>
+              </button>
+              <button class="brush-btn" data-brush="bucket" title="油漆桶填色 (Flood Fill: 填滿封閉區域)">
+                <i class="fa-solid fa-fill-drip"></i>
+                <span>油漆桶</span>
+              </button>
+              <button class="brush-btn" data-brush="eraser" title="真實柔和橡皮擦 (Realistic Soft Eraser: 輕擦高光、重複擦除)">
+                <i class="fa-solid fa-eraser"></i>
+                <span>柔和橡皮</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 顏色調節與吸管 -->
+          <div class="tool-group">
+            <div class="group-label-row">
+              <label class="group-label"><i class="fa-solid fa-eye-dropper"></i> 顏料色彩</label>
+              <button id="btn-eyedropper" class="mini-btn" title="吸管取色">
+                <i class="fa-solid fa-eye-dropper"></i> 吸管
+              </button>
+            </div>
+            
+            <div class="color-picker-wrapper">
+              <div class="color-preview-container">
+                <div class="color-preview-box" id="color-preview" style="background-color: #2b2b2b;"></div>
+                <input type="color" id="main-color-picker" value="#2b2b2b">
+              </div>
+              <div class="color-hex-label" id="color-hex-text">#2B2B2B</div>
+            </div>
+
+            <!-- 預設精選色票 (大師級 24 色水彩經典全色盤) -->
+            <div class="palette-swatches">
+              <span class="swatch-title">素描石墨階度</span>
+              <div class="swatches-row">
+                <button class="swatch" style="background-color: #000000;" data-color="#000000" title="純黑 9B"></button>
+                <button class="swatch" style="background-color: #2b2b2b;" data-color="#2b2b2b" title="石墨黑 6B"></button>
+                <button class="swatch" style="background-color: #4a4a4a;" data-color="#4a4a4a" title="炭黑 4B"></button>
+                <button class="swatch" style="background-color: #6e6e6e;" data-color="#6e6e6e" title="鉛灰 2B"></button>
+                <button class="swatch" style="background-color: #9c9c9c;" data-color="#9c9c9c" title="淺灰 HB"></button>
+                <button class="swatch" style="background-color: #d1d1d1;" data-color="#d1d1d1" title="極淺灰 2H"></button>
+              </div>
+
+              <span class="swatch-title">水彩大師經典色盤 (24 色)</span>
+              <div class="swatches-row watercolor-expanded-palette">
+                <!-- 藍青色系 -->
+                <button class="swatch" style="background-color: #0f2b5c;" data-color="#0f2b5c" title="普魯士藍"></button>
+                <button class="swatch" style="background-color: #1e3a8a;" data-color="#1e3a8a" title="群青藍"></button>
+                <button class="swatch" style="background-color: #2563eb;" data-color="#2563eb" title="鈷藍"></button>
+                <button class="swatch" style="background-color: #0284c7;" data-color="#0284c7" title="天藍"></button>
+                <button class="swatch" style="background-color: #0d9488;" data-color="#0d9488" title="松石青"></button>
+                <button class="swatch" style="background-color: #06b6d4;" data-color="#06b6d4" title="湖水藍"></button>
+
+                <!-- 紅粉色系 -->
+                <button class="swatch" style="background-color: #991b1b;" data-color="#991b1b" title="深茜紅"></button>
+                <button class="swatch" style="background-color: #dc2626;" data-color="#dc2626" title="硃砂紅"></button>
+                <button class="swatch" style="background-color: #e11d48;" data-color="#e11d48" title="玫瑰紅"></button>
+                <button class="swatch" style="background-color: #f43f5e;" data-color="#f43f5e" title="珊瑚粉"></button>
+                <button class="swatch" style="background-color: #ec4899;" data-color="#ec4899" title="櫻花粉"></button>
+                <button class="swatch" style="background-color: #fda4af;" data-color="#fda4af" title="嫩肉粉"></button>
+
+                <!-- 黃橙色系 -->
+                <button class="swatch" style="background-color: #ea580c;" data-color="#ea580c" title="朱黃橘"></button>
+                <button class="swatch" style="background-color: #f97316;" data-color="#f97316" title="藤黃橘"></button>
+                <button class="swatch" style="background-color: #eab308;" data-color="#eab308" title="中黃"></button>
+                <button class="swatch" style="background-color: #fde047;" data-color="#fde047" title="檸檬黃"></button>
+                <button class="swatch" style="background-color: #d97706;" data-color="#d97706" title="金黃土"></button>
+                <button class="swatch" style="background-color: #fef08a;" data-color="#fef08a" title="米白黃"></button>
+
+                <!-- 綠色系 -->
+                <button class="swatch" style="background-color: #064e3b;" data-color="#064e3b" title="暗墨綠"></button>
+                <button class="swatch" style="background-color: #059669;" data-color="#059669" title="翡翠綠"></button>
+                <button class="swatch" style="background-color: #10b981;" data-color="#10b981" title="草地綠"></button>
+                <button class="swatch" style="background-color: #84cc16;" data-color="#84cc16" title="橄欖嫩綠"></button>
+                <button class="swatch" style="background-color: #65a30d;" data-color="#65a30d" title="青苔綠"></button>
+                <button class="swatch" style="background-color: #a7f3d0;" data-color="#a7f3d0" title="薄荷綠"></button>
+
+                <!-- 紫色與棕土色系 -->
+                <button class="swatch" style="background-color: #581c87;" data-color="#581c87" title="永固紫"></button>
+                <button class="swatch" style="background-color: #7c3aed;" data-color="#7c3aed" title="紫羅蘭"></button>
+                <button class="swatch" style="background-color: #a855f7;" data-color="#a855f7" title="粉紫"></button>
+                <button class="swatch" style="background-color: #451a03;" data-color="#451a03" title="焦茶熟褐"></button>
+                <button class="swatch" style="background-color: #78350f;" data-color="#78350f" title="生赭棕"></button>
+                <button class="swatch" style="background-color: #b45309;" data-color="#b45309" title="土黃赭"></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 筆刷參數微調 -->
+          <div class="tool-group">
+            <label class="group-label"><i class="fa-solid fa-sliders"></i> 筆觸與線條參數</label>
+            
+            <div class="slider-control">
+              <div class="slider-info">
+                <span><i class="fa-solid fa-circle-dot"></i> 筆刷粗細</span>
+                <span id="brush-size-val">24 px</span>
+              </div>
+              <input type="range" id="brush-size" min="1" max="100" value="24">
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-info">
+                <span><i class="fa-solid fa-droplet"></i> 水份 / 透明度</span>
+                <span id="brush-opacity-val">85%</span>
+              </div>
+              <input type="range" id="brush-opacity" min="5" max="100" value="85">
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-info">
+                <span><i class="fa-solid fa-wind"></i> 水彩暈染擴散強度</span>
+                <span id="brush-bleed-val">顯著擴散</span>
+              </div>
+              <input type="range" id="brush-bleed" min="1" max="5" value="3">
+            </div>
+          </div>
+
+          <!-- 紙張質感選擇 -->
+          <div class="tool-group">
+            <label class="group-label"><i class="fa-solid fa-scroll"></i> 當前畫紙質感底紋</label>
+            <div class="paper-texture-options">
+              <button class="paper-btn active" data-texture="watercolor-paper" title="冷壓水彩紙">
+                <i class="fa-solid fa-note-sticky"></i> 水彩紙
+              </button>
+              <button class="paper-btn" data-texture="sketch-paper" title="細紋素描紙">
+                <i class="fa-solid fa-file"></i> 素描紙
+              </button>
+              <button class="paper-btn" data-texture="craft-paper" title="復古牛皮紙">
+                <i class="fa-solid fa-box-archive"></i> 牛皮紙
+              </button>
+              <button class="paper-btn" data-texture="smooth-paper" title="純淨白紙">
+                <i class="fa-regular fa-file"></i> 平滑紙
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbox-resize-handle" title="拖曳調整工作室大小">
+          <i class="fa-solid fa-arrows-up-down-left-right"></i>
+        </div>
+      </aside>
+
+      <!-- 畫布視口 -->
+      <div class="canvas-viewport" id="canvas-viewport">
+        <div class="canvas-paper-wrapper watercolor-paper" id="canvas-paper-card">
+          <!-- 畫布紋理層 -->
+          <div class="paper-texture-overlay" id="paper-texture"></div>
+          <!-- 核心繪製 Canvas -->
+          <canvas id="paint-canvas"></canvas>
+          <!-- 游標筆觸預覽 -->
+          <div id="brush-cursor" class="brush-cursor"></div>
+
+          <!-- 簽名印章變換控制器 (支援持續重複拖曳與縮放) -->
+          <div id="stamp-transform-box" class="stamp-transform-box" style="display: none;">
+            <div class="stamp-image-wrapper" id="stamp-img-container">
+              <img id="stamp-preview-img" src="" alt="Stamp Preview" draggable="false">
+            </div>
+            <div class="stamp-handle handle-tl" data-handle="tl"></div>
+            <div class="stamp-handle handle-tr" data-handle="tr"></div>
+            <div class="stamp-handle handle-bl" data-handle="bl"></div>
+            <div class="stamp-handle handle-br" data-handle="br"></div>
+
+            <div class="stamp-floating-toolbar">
+              <div class="stamp-toolbar-group">
+                <label><i class="fa-solid fa-circle-half-stroke"></i> 印泥透明度</label>
+                <input type="range" id="stamp-opacity" min="10" max="100" value="95">
+              </div>
+              <button id="btn-apply-stamp" class="stamp-btn-apply" title="確認蓋上印章 (烘焙至畫布)">
+                <i class="fa-solid fa-check"></i> 確認蓋印
+              </button>
+              <button id="btn-cancel-stamp" class="stamp-btn-cancel" title="取消蓋章">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 畫布放大縮小與平移浮動控制列 -->
+      <div class="canvas-zoom-controls" id="canvas-zoom-bar">
+        <button id="btn-zoom-out" class="zoom-btn" title="縮小畫布 (滾輪向下)">
+          <i class="fa-solid fa-magnifying-glass-minus"></i>
+        </button>
+        <span class="zoom-level-text" id="zoom-level-label" title="目前縮放比例">100%</span>
+        <button id="btn-zoom-in" class="zoom-btn" title="放大畫布 (滾輪向上)">
+          <i class="fa-solid fa-magnifying-glass-plus"></i>
+        </button>
+        <button id="btn-zoom-reset" class="zoom-btn" title="重設 100%">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+        <button id="btn-zoom-fit" class="zoom-btn" title="適配視窗大小 (等比例縮放)">
+          <i class="fa-solid fa-arrows-to-eye"></i>
+        </button>
+        <button id="btn-toggle-pan" class="zoom-btn" title="切換抓手平移模式 (按住空白鍵 Space 亦可拖動畫布)">
+          <i class="fa-solid fa-hand"></i>
+        </button>
+      </div>
+    </main>
+
+    <!-- 畫布尺寸設定 Modal -->
+    <div id="modal-canvas-size" class="modal-overlay" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-title"><i class="fa-solid fa-expand"></i> 設定畫布實際解析度尺寸</span>
+          <button id="btn-close-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="preset-sizes-grid">
+            <button class="preset-size-btn active" data-w="1200" data-h="900">
+              <i class="fa-solid fa-desktop"></i>
+              <span class="preset-name">標準 4:3 畫布</span>
+              <span class="preset-desc">1200 &times; 900</span>
+            </button>
+            <button class="preset-size-btn" data-w="1200" data-h="1200">
+              <i class="fa-solid fa-square"></i>
+              <span class="preset-name">正方形 1:1</span>
+              <span class="preset-desc">1200 &times; 1200</span>
+            </button>
+            <button class="preset-size-btn" data-w="1240" data-h="1754">
+              <i class="fa-solid fa-file-lines"></i>
+              <span class="preset-name">A4 直式</span>
+              <span class="preset-desc">1240 &times; 1754</span>
+            </button>
+            <button class="preset-size-btn" data-w="1754" data-h="1240">
+              <i class="fa-solid fa-file-image"></i>
+              <span class="preset-name">A4 橫式</span>
+              <span class="preset-desc">1754 &times; 1240</span>
+            </button>
+            <button class="preset-size-btn" data-w="1920" data-h="1080">
+              <i class="fa-solid fa-film"></i>
+              <span class="preset-name">16:9 FHD</span>
+              <span class="preset-desc">1920 &times; 1080</span>
+            </button>
+            <button class="preset-size-btn" data-w="1600" data-h="1200">
+              <i class="fa-solid fa-palette"></i>
+              <span class="preset-name">經典油畫布</span>
+              <span class="preset-desc">1600 &times; 1200</span>
+            </button>
+          </div>
+
+          <div class="custom-size-row">
+            <span class="custom-size-title"><i class="fa-solid fa-sliders"></i> 自訂尺寸 (像素)：</span>
+            <div class="custom-size-inputs">
+              <input type="number" id="custom-w" min="200" max="4000" placeholder="寬度 (px)" value="1200">
+              <span class="size-cross">&times;</span>
+              <input type="number" id="custom-h" min="200" max="4000" placeholder="高度 (px)" value="900">
+              <button id="btn-apply-custom-size" class="mini-apply-btn">套用新尺寸</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批次匯出 Modal 彈窗 -->
+    <div id="modal-batch-export" class="modal-overlay" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-title"><i class="fa-solid fa-images"></i> 批次匯出全部畫紙</span>
+          <button id="btn-close-batch-modal" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="batch-export-section">
+            <span class="group-label"><i class="fa-solid fa-sliders"></i> 選擇匯出格式</span>
+            <div class="batch-format-selector">
+              <label class="batch-radio-label">
+                <input type="radio" name="batch-format" value="transparent_png">
+                <span>透明背景 PNG (去背素材)</span>
+              </label>
+              <label class="batch-radio-label">
+                <input type="radio" name="batch-format" value="png" checked>
+                <span>含底紙質感 PNG (高畫質手繪)</span>
+              </label>
+              <label class="batch-radio-label">
+                <input type="radio" name="batch-format" value="jpg">
+                <span>標準 JPG 圖片</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="batch-export-section">
+            <div class="group-label-row">
+              <span class="group-label"><i class="fa-solid fa-list-check"></i> 選擇要匯出的畫紙</span>
+              <button id="btn-select-all-sheets" class="mini-btn">全選 / 全不選</button>
+            </div>
+            <div class="batch-sheets-list" id="batch-sheets-checklist">
+            </div>
+          </div>
+
+          <div class="batch-actions-footer">
+            <button id="btn-execute-batch-export" class="tool-btn-action primary" style="width: 100%; justify-content: center; padding: 10px;">
+              <i class="fa-solid fa-download"></i> 開始批次打包下載
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 頁面底部資訊 -->
+    <footer class="app-footer">
+      <div class="footer-social-wrapper">
+        <a href="https://www.facebook.com/happyliyuchilltiger/" target="_blank" rel="noopener noreferrer" class="facebook-link" title="前往 快樂鯉魚秋老虎 Facebook 粉絲專頁">
+          <i class="fa-brands fa-square-facebook fb-icon"></i>
+          <span class="fb-text">快樂鯉魚秋老虎</span>
+          <i class="fa-solid fa-arrow-up-right-from-square fb-external-icon"></i>
+        </a>
+      </div>
+      <div class="footer-copyright">
+        Copyright &copy; Liyuchiutiger Gongminshen
+      </div>
+    </footer>
+  </div>
+
+  <!-- 網頁左下角吉祥物 -->
+  <div id="mascot-container" class="mascot-draggable" title="我是吉祥物！懸停看我發光抖動，拖曳我可以移動到任何地方喔！">
+    <div class="mascot-img-wrapper">
+      <img src="image/LiyuChillGuy.svg" alt="LiyuChillGuy" id="mascot-image" class="mascot-img" draggable="false">
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
